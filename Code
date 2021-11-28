@@ -1,0 +1,152 @@
+%%Reading Data
+data4=readtable('forestfires(2).csv');
+x=[table2array(data4(:,1:2)), table2array(data4(:,5:12))];
+y=[table2array(data4(:,13))];
+[y,ind]=sort(y);
+
+x2=table2array(data4(:, 3:4));
+str = convertCharsToStrings(x2);
+[tf, months] = ismember(str(:, 1), {'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'});
+[ft, days]=ismember(str(:, 2), {'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'});
+x=[months, days, x];
+x=x(ind, :);
+%% Normalization
+x=x(:,1:11);
+x=x(1:500,:);
+y=y(1:500,:);
+ind=randperm(500);
+x=x(ind,:);
+y=y(ind, :);
+for i=1:11
+    xnormi(:,i)=(x(:,i)-min(x(:,i)))/(max(x(:, i))-min(x(:, i)));
+end
+xt=xnormi';
+y=log(1+y);
+%ynormi=(y-min(y))/(max(y)-min(y));
+yt=y';
+%xt=xt([1,2,3,4,6,9,10,11],:);
+%% %%Data Visualization
+plot(x(:, 9), y, 'o');
+xlabel("Temperature");
+ylabel("Area Burned(log(1+y))");
+title("Area of Forest Burned");
+%% 
+yunit=y;
+for i=1:500
+    if y(i)>0
+        yunit(i)=1;
+    end
+end
+%% X-Y coordinate
+tot=x(:,4).*yunit;
+plot(x(:,3), x(:,4).*yunit, 'x');
+xlabel("X coordinate");
+ylabel("Y coordinate");
+title("Locations of Fire");
+
+
+%% Result for Hidden layersize
+    
+    hiddenlayersize=14;
+    net=fitnet(hiddenlayersize, 'traingdm');
+    %net.divideFcn = 'divideblock';
+    net.divideParam.trainRatio=70/100;
+    net.divideParam.valRatio=20/100;
+    net.divideParam.testRatio=10/100;
+    net.trainParam.lr=0.1;
+    net.trainParam.mc=0.7;
+    net.trainParam.epochs=50000;
+    net.layers{1}.transferFcn='logsig';
+    [net, tr]=train(net, xt, yt);
+    trainedy2=net(xt(:,tr.trainInd));
+    trainedy=exp(trainedy2)-1;
+    ytraintrue2=yt(tr.trainInd);
+    ytraintrue=exp(ytraintrue2)-1;
+    validy=net(xt(:,tr.valInd));
+    validy=exp(validy)-1;
+    yvaltrue=yt(tr.valInd);
+    yvaltrue=exp(yvaltrue)-1;
+    realtest=yt(tr.testInd);
+    realtest=exp(realtest)-1;
+    testout=net(xt(:,tr.testInd));
+    testout=exp(testout)-1;
+    
+    sqrt(mean((trainedy-ytraintrue).^2))
+    sqrt(mean((yvaltrue-validy).^2))
+    sqrt(mean((testout-realtest).^2))
+    [R,~,~] = regression(ytraintrue2,trainedy2);
+    %% 
+    
+
+    
+%% 
+testing=randi(500, 1,5);
+tt=net(xt(:,testing));
+ttt=yt(:, testing);
+mean((tt-ttt).^2)
+%% Varying Hidden Layer Size
+for i=1:60
+    hiddenlayersize=i;
+    net=fitnet(hiddenlayersize, 'traingdm');
+    %net.divideFcn = 'divideblock';
+    net.divideParam.trainRatio=70/100;
+    net.divideParam.valRatio=15/100;
+    net.divideParam.testRatio=15/100;
+
+    
+        
+        [net, tr]=train(net, xt, yt);
+        trainedy2=net(xt(:,tr.trainInd));
+        net.trainParam.lr=0.1;
+        net.trainParam.mc=0.7;
+        net.trainParam.epochs=50000;
+        net.layers{1}.transferFcn='logsig';
+        trainedy=exp(trainedy2)-1;
+        ytraintrue2=yt(tr.trainInd);
+        ytraintrue=exp(ytraintrue2)-1;
+        validy2=net(xt(:,tr.valInd));
+        validy=exp(validy2)-1;
+        yvaltrue2=yt(tr.valInd);
+        yvaltrue=exp(yvaltrue2)-1;
+        plot(yvaltrue, validy, 'x');
+        realtest=yt(tr.testInd);
+        realtest=exp(realtest)-1;
+        testout=net(xt(:,tr.testInd));
+        testout=exp(testout)-1;
+        rms_train(i)=sqrt(mean((trainedy-ytraintrue).^2));
+        rms_val(i)=sqrt(mean((validy-yvaltrue).^2));
+        rms_test(i)=sqrt(mean((testout-realtest).^2));
+        [R(i),~,~] = regression(ytraintrue2,trainedy2);
+        [R2(i),~,~] = regression(yvaltrue2,validy2);
+    
+end
+%% 
+plot(1:60, rms_train); hold on;
+plot(1:60, rms_val); 
+plot(1:60, rms_test); 
+hold off;
+
+%% Code for 2 no. of layers and varying hidden size
+for i=1:40
+    for j=1:40
+        hiddenlayersize=[i,j];
+    net=fitnet(hiddenlayersize);
+    net.divideFcn = 'divideblock';
+    net.divideParam.trainRatio=70/100;
+    net.divideParam.valRatio=30/100;
+    net.divideParam.testRatio=0/100;
+    [net, tr]=train(net, xt, yt);
+    trainedy=net(xt(:,tr.trainInd));
+    ytraintrue=yt(tr.trainInd);
+    validy=net(xt(:,tr.valInd));
+    yvaltrue=yt(tr.valInd);
+    plot(yvaltrue, abs(validy), "o");
+    title("layer "+i+j);
+    rmse_train2(i,j)=sqrt(mean((trainedy-ytraintrue).^2));
+    rmse_val2(i,j)=sqrt(mean((validy-yvaltrue).^2));
+    [R2(i,j),~,~] = regression(ytraintrue,trainedy);
+    [R22(i,j),~,~] = regression(yvaltrue,validy);
+    end
+end
+
+    
