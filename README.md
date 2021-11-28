@@ -5,4 +5,8 @@ We have trained our model with the help of Neural Networks using MATLAB giving i
 Link for report-
 https://docs.google.com/document/d/1U29F_k76J3TmULF7njqyQIWud9vThNZnVY8ywqgTggo/edit?usp=sharing
 
+FWI Features-!
+[image](https://user-images.githubusercontent.com/84274736/143729032-b36d81ad-071b-44c6-9adb-7da36aa434ed.png)
+
+
 Link for original dataset-https://www.kaggle.com/elikplim/forest-fires-data-set
